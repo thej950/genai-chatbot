@@ -3,7 +3,7 @@ import numpy as np
 
 class VectorStore:
 
-    def __init__(self, dimension):
+    def __init__(self, dimension: int = 384):
 
         self.index = faiss.IndexFlatL2(dimension)
 

@@ -1,29 +1,26 @@
-from fastapi import APIRouter
-from app.models.chat import ChatRequest
-from app.services.bedrock import chat_with_bedrock
-from app.services.retriever import Retriever
+from app.services.embeddings import generate_embedding
 from app.services.vector_store import VectorStore
-from app.services.prompt_builder import build_prompt
 
-router = APIRouter()
 
-# Create objects only once
-vector_store = VectorStore()
-retriever = Retriever(vector_store)
+class Retriever:
+    """
+    Retrieve the most relevant document chunks for a user question.
+    """
 
-@router.post("/chat")
-def chat(request: ChatRequest):
+    def __init__(self, vector_store: VectorStore):
+        self.vector_store = vector_store
 
-    # Retrieve relevant chunks
-    context = retriever.retrieve(request.question)
+    def retrieve(self, question: str, k: int = 3):
+        question_embedding = generate_embedding(question)
+        return self.vector_store.search(question_embedding, k=k)
 
-    # Build prompt
-    prompt = build_prompt(context, request.question)
 
-    # Get answer from Bedrock
-    answer = chat_with_bedrock(prompt)
+def retrieve(question: str, vector_store: VectorStore | None = None, k: int = 3):
+    """
+    Convenience wrapper for a single retrieval call.
+    """
+    if vector_store is None:
+        vector_store = VectorStore()
 
-    return {
-        "question": request.question,
-        "answer": answer
-    }
+    retriever = Retriever(vector_store)
+    return retriever.retrieve(question, k=k)
